@@ -1,4 +1,5 @@
 crewai[tools]
+flask
 python-dotenv
 pandas
 matplotlib
