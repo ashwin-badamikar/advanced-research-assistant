@@ -1,0 +1,8 @@
+crewai[tools]
+python-dotenv
+pandas
+matplotlib
+seaborn
+requests
+beautifulsoup4
+jsonschema

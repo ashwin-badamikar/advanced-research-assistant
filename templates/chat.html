@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Research Assistant</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.5/socket.io.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .chat-container {
+            width: 90%;
+            max-width: 800px;
+            height: 90vh;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+        }
+
+        .chat-header h1 {
+            font-size: 1.5rem;
+            margin-bottom: 5px;
+        }
+
+        .chat-header p {
+            opacity: 0.9;
+            font-size: 0.9rem;
+        }
+
+        .status-indicator {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #ff6b6b;
+            animation: pulse 2s infinite;
+        }
+
+        .status-indicator.connected {
+            background: #00ff88;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.7; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 15px 20px;
+            border-radius: 20px;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.user {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            align-self: flex-end;
+            margin-left: auto;
+        }
+
+        .message.system {
+            background: #f8f9fa;
+            color: #333;
+            align-self: flex-start;
+            border-left: 4px solid #667eea;
+        }
+
+        .message.success {
+            background: linear-gradient(135deg, #00ff88, #00cc6a);
+            color: white;
+            align-self: flex-start;
+        }
+
+        .message.error {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+            color: white;
+            align-self: flex-start;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: rgba(102, 126, 234, 0.2);
+            border-radius: 2px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 2px;
+        }
+
+        .research-options {
+            background: #f8f9fa;
+            padding: 20px;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .option-group {
+            margin-bottom: 15px;
+        }
+
+        .option-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        .option-group select, .option-group input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .option-group select:focus, .option-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .quick-examples {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .example-btn {
+            background: rgba(102, 126, 234, 0.1);
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            color: #667eea;
+            padding: 8px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .example-btn:hover {
+            background: #667eea;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .chat-input {
+            display: flex;
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e9ecef;
+            gap: 10px;
+        }
+
+        .chat-input input {
+            flex: 1;
+            padding: 15px 20px;
+            border: 2px solid #e9ecef;
+            border-radius: 25px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .chat-input input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .chat-input button {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.3s ease;
+        }
+
+        .chat-input button:hover {
+            transform: translateY(-2px);
+        }
+
+        .chat-input button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .file-downloads {
+            margin-top: 15px;
+        }
+
+        .download-btn {
+            background: #28a745;
+            color: white;
+            padding: 8px 15px;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            margin: 5px;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 0.9rem;
+            transition: background 0.3s ease;
+        }
+
+        .download-btn:hover {
+            background: #218838;
+        }
+
+        .typing-indicator {
+            display: none;
+            align-items: center;
+            gap: 10px;
+            padding: 15px 20px;
+            background: #f8f9fa;
+            border-radius: 20px;
+            margin-bottom: 15px;
+            align-self: flex-start;
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 3px;
+        }
+
+        .typing-dots span {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #667eea;
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-10px); }
+        }
+
+        .collapsed {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .expanded {
+            max-height: 300px;
+            transition: max-height 0.3s ease;
+        }
+
+        .toggle-options {
+            background: none;
+            border: none;
+            color: #667eea;
+            cursor: pointer;
+            padding: 10px;
+            font-weight: 600;
+        }
+
+        .connection-status {
+            padding: 10px;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        .connection-status.disconnected {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        .connection-status.connected {
+            background: #00ff88;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <div class="status-indicator" id="statusIndicator"></div>
+            <h1>🤖 Advanced Research Assistant</h1>
+            <p>AI-powered multi-agent research system</p>
+        </div>
+
+        <div class="connection-status disconnected" id="connectionStatus">
+            🔴 Connecting to server...
+        </div>
+
+        <div class="chat-messages" id="chatMessages">
+            <div class="message system">
+                Welcome! I'm your Advanced Research Assistant. I can help you research any topic using my specialized AI agents.
+                <br><br>
+                <strong>How it works:</strong>
+                <ul style="margin-top: 10px; padding-left: 20px;">
+                    <li>🔍 Research Agent gathers information</li>
+                    <li>📊 Analysis Agent processes insights</li>
+                    <li>✍️ Content Agent creates your report</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="typing-indicator" id="typingIndicator">
+            <div class="typing-dots">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+            <span>AI agents working...</span>
+        </div>
+
+        <div class="research-options expanded" id="researchOptions">
+            <button class="toggle-options" onclick="toggleOptions()">⚙️ Research Options</button>
+            <div id="optionsContent">
+                <div class="option-group">
+                    <label>Output Format:</label>
+                    <select id="formatSelect">
+                        <option value="executive_briefing">Executive Briefing</option>
+                        <option value="comprehensive_report">Comprehensive Report</option>
+                        <option value="presentation">Presentation</option>
+                        <option value="technical_summary">Technical Summary</option>
+                        <option value="policy_brief">Policy Brief</option>
+                    </select>
+                </div>
+                
+                <div class="option-group">
+                    <label>Target Audience:</label>
+                    <select id="audienceSelect">
+                        <option value="professional">Professional</option>
+                        <option value="executive">Executive</option>
+                        <option value="academic">Academic</option>
+                        <option value="technical">Technical</option>
+                        <option value="general">General</option>
+                    </select>
+                </div>
+                
+                <div class="option-group">
+                    <label>Depth Level:</label>
+                    <select id="depthSelect">
+                        <option value="detailed">Detailed</option>
+                        <option value="comprehensive">Comprehensive</option>
+                        <option value="overview">Overview</option>
+                        <option value="expert">Expert</option>
+                    </select>
+                </div>
+
+                <div class="option-group">
+                    <label>Quick Examples:</label>
+                    <div class="quick-examples" id="quickExamples">
+                        <div class="example-btn" onclick="setQuery('AI trends in healthcare 2024')">AI in Healthcare</div>
+                        <div class="example-btn" onclick="setQuery('Blockchain applications in supply chain')">Blockchain Supply Chain</div>
+                        <div class="example-btn" onclick="setQuery('Remote work productivity best practices')">Remote Work</div>
+                        <div class="example-btn" onclick="setQuery('Sustainable energy solutions')">Sustainable Energy</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="chat-input">
+            <input type="text" id="messageInput" placeholder="Enter your research query..." 
+                   onkeypress="handleKeyPress(event)">
+            <button onclick="startResearch()" id="sendButton">🚀 Research</button>
+        </div>
+    </div>
+
+    <script>
+        let socket;
+        let isConnected = false;
+        let isResearching = false;
+        
+        const messagesContainer = document.getElementById('chatMessages');
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+        const typingIndicator = document.getElementById('typingIndicator');
+        const statusIndicator = document.getElementById('statusIndicator');
+        const connectionStatus = document.getElementById('connectionStatus');
+
+        // Initialize connection
+        function initializeConnection() {
+            console.log('Initializing Socket.IO connection...');
+            
+            try {
+                socket = io({
+                    transports: ['websocket', 'polling'],
+                    timeout: 20000,
+                    reconnection: true,
+                    reconnectionAttempts: 5,
+                    reconnectionDelay: 1000
+                });
+
+                // Connection event handlers
+                socket.on('connect', () => {
+                    console.log('Connected to server!');
+                    isConnected = true;
+                    statusIndicator.classList.add('connected');
+                    connectionStatus.className = 'connection-status connected';
+                    connectionStatus.innerHTML = '🟢 Connected to AI Research System';
+                    addMessage('system', '🟢 Connected! Ready to start research.');
+                });
+
+                socket.on('disconnect', () => {
+                    console.log('Disconnected from server');
+                    isConnected = false;
+                    statusIndicator.classList.remove('connected');
+                    connectionStatus.className = 'connection-status disconnected';
+                    connectionStatus.innerHTML = '🔴 Disconnected from server';
+                    addMessage('error', '🔴 Connection lost. Please refresh the page.');
+                });
+
+                socket.on('connect_error', (error) => {
+                    console.error('Connection error:', error);
+                    addMessage('error', '❌ Failed to connect to server. Please check if the server is running.');
+                });
+
+                // Research event handlers
+                socket.on('research_started', (data) => {
+                    console.log('Research started:', data);
+                    addMessage('system', `🚀 ${data.message}<br><small>⏱️ ${data.estimated_duration}</small>`);
+                    showTyping();
+                    setResearchingState(true);
+                });
+
+                socket.on('progress', (data) => {
+                    console.log('Progress update:', data);
+                    addMessage('system', `📊 ${data.stage.toUpperCase()}: ${data.message}`);
+                });
+
+                socket.on('research_completed', (data) => {
+                    console.log('Research completed:', data);
+                    hideTyping();
+                    setResearchingState(false);
+                    
+                    if (data.success) {
+                        const result = data.results;
+                        let message = `✅ Research completed successfully!<br><br>`;
+                        message += `📋 <strong>Project ID:</strong> ${result.project_id}<br>`;
+                        message += `⏱️ <strong>Duration:</strong> ${result.duration}<br><br>`;
+                        message += `📄 <strong>Preview:</strong><br>${result.output_preview}`;
+                        
+                        if (result.files && result.files.length > 0) {
+                            message += `<div class="file-downloads">`;
+                            message += `<br><strong>📁 Generated Files:</strong><br>`;
+                            result.files.forEach(file => {
+                                message += `<a href="/api/download/${file.name}" class="download-btn">📄 ${file.name}</a>`;
+                            });
+                            message += `</div>`;
+                        }
+                        
+                        addMessage('success', message);
+                    } else {
+                        addMessage('error', `❌ Research failed: ${data.error}`);
+                    }
+                });
+
+                socket.on('error', (data) => {
+                    console.error('Socket error:', data);
+                    hideTyping();
+                    setResearchingState(false);
+                    addMessage('error', `❌ Error: ${data.message}`);
+                });
+
+            } catch (error) {
+                console.error('Failed to initialize socket:', error);
+                addMessage('error', '❌ Failed to initialize connection. Please refresh the page.');
+            }
+        }
+
+        function addMessage(type, content) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            messageDiv.innerHTML = content;
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function showTyping() {
+            typingIndicator.style.display = 'flex';
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function hideTyping() {
+            typingIndicator.style.display = 'none';
+        }
+
+        function setResearchingState(researching) {
+            isResearching = researching;
+            sendButton.disabled = researching;
+            messageInput.disabled = researching;
+            
+            if (researching) {
+                sendButton.textContent = '⏳ Researching...';
+            } else {
+                sendButton.textContent = '🚀 Research';
+            }
+        }
+
+        function startResearch() {
+            const query = messageInput.value.trim();
+            console.log('Starting research with query:', query);
+            
+            if (!query) {
+                addMessage('error', '❌ Please enter a research query.');
+                return;
+            }
+            
+            if (isResearching) {
+                addMessage('system', '⏳ Research already in progress. Please wait...');
+                return;
+            }
+            
+            if (!isConnected) {
+                addMessage('error', '❌ Not connected to server. Please refresh the page.');
+                return;
+            }
+
+            const format = document.getElementById('formatSelect').value;
+            const audience = document.getElementById('audienceSelect').value;
+            const depth = document.getElementById('depthSelect').value;
+
+            addMessage('user', query);
+            
+            console.log('Emitting start_research event with:', {
+                query: query,
+                format: format,
+                audience: audience,
+                depth: depth
+            });
+            
+            socket.emit('start_research', {
+                query: query,
+                format: format,
+                audience: audience,
+                depth: depth
+            });
+
+            messageInput.value = '';
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                startResearch();
+            }
+        }
+
+        function setQuery(query) {
+            messageInput.value = query;
+            messageInput.focus();
+        }
+
+        function toggleOptions() {
+            const options = document.getElementById('researchOptions');
+            const content = document.getElementById('optionsContent');
+            
+            if (options.classList.contains('collapsed')) {
+                options.classList.remove('collapsed');
+                options.classList.add('expanded');
+                content.style.display = 'block';
+            } else {
+                options.classList.remove('expanded');
+                options.classList.add('collapsed');
+                content.style.display = 'none';
+            }
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('Page loaded, initializing connection...');
+            messageInput.focus();
+            initializeConnection();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Research Assistant</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .app-container {
+            display: flex;
+            height: 100vh;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            gap: 20px;
+        }
+
+        .chat-section {
+            flex: 2;
+            display: flex;
+            flex-direction: column;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            overflow: hidden;
+            min-height: 0;
+        }
+
+        .options-section {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            padding: 24px;
+            backdrop-filter: blur(10px);
+            overflow-y: auto;
+            max-height: calc(100vh - 40px);
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px 24px;
+            text-align: center;
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .chat-header h1 {
+            font-size: 1.8rem;
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+
+        .chat-header p {
+            opacity: 0.9;
+            font-size: 1rem;
+        }
+
+        .status-indicator {
+            position: absolute;
+            top: 24px;
+            right: 24px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #00ff88;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.7; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            min-height: 0;
+            scroll-behavior: smooth;
+        }
+
+        .chat-messages::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 3px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb:hover {
+            background: #5a6fd8;
+        }
+
+        .message {
+            max-width: 75%;
+            padding: 16px 20px;
+            border-radius: 18px;
+            animation: slideIn 0.3s ease;
+            word-wrap: break-word;
+            line-height: 1.5;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.user {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            align-self: flex-end;
+            margin-left: auto;
+            font-weight: 500;
+        }
+
+        .message.assistant {
+            background: #f8f9fc;
+            color: #2d3748;
+            align-self: flex-start;
+            border-left: 4px solid #667eea;
+            border-radius: 18px 18px 18px 4px;
+        }
+
+        .message.system {
+            background: #e6f3ff;
+            color: #1a202c;
+            align-self: flex-start;
+            border-left: 4px solid #3182ce;
+            border-radius: 18px 18px 18px 4px;
+        }
+
+        .message.success {
+            background: linear-gradient(135deg, #48bb78, #38a169);
+            color: white;
+            align-self: flex-start;
+            border-radius: 18px 18px 18px 4px;
+        }
+
+        .message.error {
+            background: linear-gradient(135deg, #f56565, #e53e3e);
+            color: white;
+            align-self: flex-start;
+            border-radius: 18px 18px 18px 4px;
+        }
+
+        .typing-indicator {
+            display: none;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 20px;
+            background: #f8f9fc;
+            border-radius: 18px;
+            margin-bottom: 16px;
+            align-self: flex-start;
+            border-left: 4px solid #667eea;
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .typing-dots span {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #667eea;
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+            30% { transform: translateY(-8px); opacity: 1; }
+        }
+
+        .chat-input {
+            display: flex;
+            padding: 20px 24px;
+            background: #fafafa;
+            border-top: 1px solid #e2e8f0;
+            gap: 12px;
+            flex-shrink: 0;
+        }
+
+        .chat-input input {
+            flex: 1;
+            padding: 16px 20px;
+            border: 2px solid #e2e8f0;
+            border-radius: 24px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .chat-input input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .chat-input button {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 16px 24px;
+            border-radius: 24px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .chat-input button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .chat-input button:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .options-header {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .option-group {
+            margin-bottom: 20px;
+        }
+
+        .option-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #4a5568;
+            font-size: 0.95rem;
+        }
+
+        .option-group select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: white;
+            cursor: pointer;
+        }
+
+        .option-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .quick-examples {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .example-btn {
+            background: rgba(102, 126, 234, 0.08);
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            color: #667eea;
+            padding: 12px 16px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            text-align: left;
+            font-weight: 500;
+        }
+
+        .example-btn:hover {
+            background: #667eea;
+            color: white;
+            transform: translateX(4px);
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        .progress-container {
+            padding: 16px 24px;
+            background: #f8fafe;
+            border-top: 1px solid #e2e8f0;
+            border-bottom: 1px solid #e2e8f0;
+            flex-shrink: 0;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.8s ease;
+            border-radius: 4px;
+        }
+
+        .progress-text {
+            text-align: center;
+            font-size: 0.9rem;
+            color: #4a5568;
+            font-weight: 500;
+        }
+
+        .download-btn {
+            background: linear-gradient(135deg, #48bb78, #38a169);
+            color: white;
+            padding: 10px 16px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            margin: 6px 6px 0 0;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(72, 187, 120, 0.3);
+        }
+
+        .conversation-controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 8px;
+        }
+
+        .control-btn {
+            padding: 8px 12px;
+            border: 1px solid #e2e8f0;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.3s ease;
+            color: #4a5568;
+        }
+
+        .control-btn:hover {
+            background: #f7fafc;
+            border-color: #667eea;
+            color: #667eea;
+        }
+
+        .system-stats {
+            background: rgba(102, 126, 234, 0.08);
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 24px;
+        }
+
+        .system-stats h3 {
+            color: #667eea;
+            margin-bottom: 12px;
+            font-size: 1.1rem;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+
+        .stat-label {
+            color: #4a5568;
+        }
+
+        .stat-value {
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        /* Enhanced message styling */
+        .message ul {
+            margin: 8px 0;
+            padding-left: 20px;
+        }
+
+        .message li {
+            margin-bottom: 4px;
+        }
+
+        .message strong {
+            font-weight: 600;
+        }
+
+        .file-downloads {
+            margin-top: 16px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        /* Conversation suggestions */
+        .follow-up-suggestions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .suggestion-btn {
+            background: rgba(102, 126, 234, 0.1);
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            color: #667eea;
+            padding: 6px 12px;
+            border-radius: 16px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.3s ease;
+        }
+
+        .suggestion-btn:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .app-container {
+                flex-direction: column;
+                padding: 10px;
+                gap: 10px;
+            }
+            
+            .options-section {
+                order: -1;
+                flex: none;
+                max-height: 300px;
+                padding: 16px;
+            }
+            
+            .chat-section {
+                flex: 1;
+                min-height: 400px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Main Chat Section -->
+        <div class="chat-section">
+            <div class="chat-header">
+                <div class="status-indicator"></div>
+                <h1>🤖 Advanced Research Assistant</h1>
+                <p>Conversational AI-powered research system</p>
+            </div>
+
+            <div class="chat-messages" id="chatMessages">
+                <div class="message assistant">
+                    <strong>Welcome!</strong> I'm your Advanced Research Assistant. I can help you research any topic and answer follow-up questions about the results.
+                    <br><br>
+                    <strong>How to use me:</strong>
+                    <ul>
+                        <li>🔍 <strong>Ask for research:</strong> "Research AI trends in healthcare" or "What are the latest developments in blockchain?"</li>
+                        <li>💬 <strong>Ask follow-up questions:</strong> "Can you explain this further?" or "What are the implications?"</li>
+                        <li>📊 <strong>Request analysis:</strong> "What are the key challenges?" or "How can this be implemented?"</li>
+                    </ul>
+                    <br>
+                    <div class="follow-up-suggestions">
+                        <div class="suggestion-btn" onclick="sendMessage('What can you research for me?')">What can you research?</div>
+                        <div class="suggestion-btn" onclick="sendMessage('Show me some example topics')">Example topics</div>
+                        <div class="suggestion-btn" onclick="sendMessage('How do your AI agents work?')">How it works</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="progress-container" id="progressContainer" style="display: none;">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="progress-text" id="progressText">Initializing research...</div>
+            </div>
+
+            <div class="typing-indicator" id="typingIndicator">
+                <div class="typing-dots">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+                <span><strong>AI thinking...</strong></span>
+            </div>
+
+            <div class="chat-input">
+                <input type="text" id="messageInput" placeholder="Ask me anything or request research on any topic..." 
+                       onkeypress="handleKeyPress(event)">
+                <button onclick="sendMessage()" id="sendButton">💬 Send</button>
+            </div>
+        </div>
+
+        <!-- Options Section -->
+        <div class="options-section">
+            <div class="options-header">
+                ⚙️ Research Settings
+            </div>
+
+            <div class="option-group">
+                <label>📄 Output Format:</label>
+                <select id="formatSelect">
+                    <option value="executive_briefing">Executive Briefing (Fast)</option>
+                    <option value="comprehensive_report">Comprehensive Report</option>
+                    <option value="presentation">Presentation Slides</option>
+                    <option value="technical_summary">Technical Summary</option>
+                    <option value="policy_brief">Policy Brief</option>
+                </select>
+            </div>
+            
+            <div class="option-group">
+                <label>👥 Target Audience:</label>
+                <select id="audienceSelect">
+                    <option value="professional">Professional</option>
+                    <option value="executive">Executive Leadership</option>
+                    <option value="academic">Academic/Research</option>
+                    <option value="technical">Technical Specialists</option>
+                    <option value="general">General Public</option>
+                </select>
+            </div>
+            
+            <div class="option-group">
+                <label>📊 Depth Level:</label>
+                <select id="depthSelect">
+                    <option value="detailed">Detailed Analysis</option>
+                    <option value="overview">Quick Overview</option>
+                    <option value="comprehensive">Comprehensive Study</option>
+                    <option value="expert">Expert Deep-Dive</option>
+                </select>
+            </div>
+
+            <div class="option-group">
+                <label>💡 Research Examples:</label>
+                <div class="quick-examples">
+                    <div class="example-btn" onclick="sendMessage('Research AI trends in healthcare 2024')">
+                        🏥 AI in Healthcare
+                    </div>
+                    <div class="example-btn" onclick="sendMessage('Analyze blockchain applications in supply chain management')">
+                        🔗 Blockchain Supply Chain
+                    </div>
+                    <div class="example-btn" onclick="sendMessage('Study remote work productivity best practices')">
+                        🏠 Remote Work
+                    </div>
+                    <div class="example-btn" onclick="sendMessage('Investigate sustainable energy solutions')">
+                        🌱 Sustainable Energy
+                    </div>
+                    <div class="example-btn" onclick="sendMessage('Examine cybersecurity trends 2024')">
+                        🔒 Cybersecurity
+                    </div>
+                    <div class="example-btn" onclick="sendMessage('Research digital marketing strategies for startups')">
+                        📱 Digital Marketing
+                    </div>
+                </div>
+            </div>
+
+            <div class="conversation-controls">
+                <button class="control-btn" onclick="clearConversation()">🗑️ Clear Chat</button>
+                <button class="control-btn" onclick="downloadChat()">💾 Export Chat</button>
+            </div>
+
+            <div class="system-stats">
+                <h3>🤖 System Status</h3>
+                <div class="stat-item">
+                    <span class="stat-label">AI Agents:</span>
+                    <span class="stat-value">3 Active</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Tools Available:</span>
+                    <span class="stat-value">6 Integrated</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Custom Tools:</span>
+                    <span class="stat-value">2 Specialized</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Status:</span>
+                    <span class="stat-value" id="systemStatus">🟢 Ready</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let isProcessing = false;
+        let statusCheckInterval;
+        
+        const messagesContainer = document.getElementById('chatMessages');
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+        const typingIndicator = document.getElementById('typingIndicator');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
+        const systemStatus = document.getElementById('systemStatus');
+
+        function addMessage(type, content, addSuggestions = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            messageDiv.innerHTML = content;
+            
+            if (addSuggestions && type === 'assistant') {
+                const suggestionsHtml = `
+                    <div class="follow-up-suggestions">
+                        <div class="suggestion-btn" onclick="sendMessage('Can you explain this further?')">Explain further</div>
+                        <div class="suggestion-btn" onclick="sendMessage('What are the key takeaways?')">Key takeaways</div>
+                        <div class="suggestion-btn" onclick="sendMessage('What should I do next?')">Next steps</div>
+                    </div>
+                `;
+                messageDiv.innerHTML += suggestionsHtml;
+            }
+            
+            messagesContainer.appendChild(messageDiv);
+            
+            // Smooth scroll to bottom
+            setTimeout(() => {
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }, 100);
+        }
+
+        function showTyping() {
+            typingIndicator.style.display = 'flex';
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function hideTyping() {
+            typingIndicator.style.display = 'none';
+        }
+
+        function showProgress() {
+            progressContainer.style.display = 'block';
+            systemStatus.innerHTML = '🔄 Researching';
+        }
+
+        function hideProgress() {
+            progressContainer.style.display = 'none';
+            systemStatus.innerHTML = '🟢 Ready';
+        }
+
+        function updateProgress(percent, text) {
+            progressFill.style.width = percent + '%';
+            progressText.textContent = text;
+        }
+
+        function setProcessingState(processing) {
+            isProcessing = processing;
+            sendButton.disabled = processing;
+            
+            if (processing) {
+                sendButton.textContent = '⏳ Processing...';
+                showTyping();
+            } else {
+                sendButton.textContent = '💬 Send';
+                hideTyping();
+            }
+        }
+
+        async function sendMessage(customMessage = null) {
+            const message = customMessage || messageInput.value.trim();
+            
+            if (!message) {
+                messageInput.focus();
+                return;
+            }
+            
+            if (isProcessing) {
+                addMessage('system', '⏳ <strong>Please wait...</strong> I\'m still processing your previous message.');
+                return;
+            }
+
+            // Add user message
+            addMessage('user', message);
+            
+            if (!customMessage) {
+                messageInput.value = '';
+            }
+            
+            setProcessingState(true);
+            
+            try {
+                const format = document.getElementById('formatSelect').value;
+                const audience = document.getElementById('audienceSelect').value;
+                const depth = document.getElementById('depthSelect').value;
+                
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        format: format,
+                        audience: audience,
+                        depth: depth
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    if (data.type === 'research_started') {
+                        addMessage('system', `🚀 <strong>${data.message}</strong><br><small>⏱️ ${data.estimated_duration}</small>`);
+                        showProgress();
+                        startResearchStatusCheck();
+                    } else if (data.type === 'message') {
+                        setProcessingState(false);
+                        addMessage('assistant', data.message, true);
+                    }
+                } else {
+                    setProcessingState(false);
+                    addMessage('error', `❌ <strong>Error:</strong> ${data.error}`);
+                }
+                
+            } catch (error) {
+                console.error('Chat error:', error);
+                setProcessingState(false);
+                addMessage('error', '❌ <strong>Network error:</strong> Please check your connection and try again.');
+            }
+        }
+
+        function startResearchStatusCheck() {
+            updateProgress(15, 'Initializing AI research agents...');
+            let progressValue = 15;
+            
+            statusCheckInterval = setInterval(async () => {
+                try {
+                    const response = await fetch('/api/status');
+                    const data = await response.json();
+                    
+                    if (data.status === 'running') {
+                        if (progressValue < 80) {
+                            progressValue += Math.random() * 8 + 3;
+                            updateProgress(Math.min(progressValue, 80), 
+                                'Research → Analysis → Content Generation...');
+                        }
+                    } else if (data.status === 'completed') {
+                        updateProgress(100, 'Research completed!');
+                        hideProgress();
+                        setProcessingState(false);
+                        
+                        if (data.results) {
+                            const result = data.results;
+                            let message = `✅ <strong>Research completed successfully!</strong><br><br>`;
+                            message += `📋 <strong>Project:</strong> ${result.project_id}<br>`;
+                            message += `⏱️ <strong>Duration:</strong> ${result.duration}<br><br>`;
+                            message += `📄 <strong>Preview:</strong><br><div style="background: rgba(255,255,255,0.1); padding: 12px; border-radius: 8px; margin: 8px 0; font-size: 0.9rem;">${result.output_preview}</div>`;
+                            
+                            if (result.files && result.files.length > 0) {
+                                message += `<div class="file-downloads">`;
+                                message += `<strong>📁 Download Reports:</strong><br>`;
+                                result.files.forEach(file => {
+                                    message += `<a href="/api/download/${file.name}" class="download-btn">📄 ${file.name}</a>`;
+                                });
+                                message += `</div>`;
+                            }
+                            
+                            addMessage('success', message);
+                            
+                            // Add follow-up suggestions
+                            setTimeout(() => {
+                                addMessage('assistant', 
+                                    '💬 <strong>I\'ve completed your research!</strong> Feel free to ask me follow-up questions like:<br><br>' +
+                                    '<div class="follow-up-suggestions">' +
+                                    '<div class="suggestion-btn" onclick="sendMessage(\'What are the most important findings?\')">Key findings</div>' +
+                                    '<div class="suggestion-btn" onclick="sendMessage(\'What are the main challenges?\')">Main challenges</div>' +
+                                    '<div class="suggestion-btn" onclick="sendMessage(\'What do you recommend?\')">Recommendations</div>' +
+                                    '<div class="suggestion-btn" onclick="sendMessage(\'Can you summarize this in simple terms?\')">Simple summary</div>' +
+                                    '</div>'
+                                );
+                            }, 1000);
+                        }
+                        
+                        await fetch('/api/reset');
+                        stopStatusCheck();
+                        
+                    } else if (data.status === 'error') {
+                        hideProgress();
+                        setProcessingState(false);
+                        addMessage('error', `❌ <strong>Research failed:</strong> ${data.error || 'Unknown error'}`);
+                        await fetch('/api/reset');
+                        stopStatusCheck();
+                    }
+                } catch (error) {
+                    console.error('Status check error:', error);
+                }
+            }, 3000);
+        }
+
+        function stopStatusCheck() {
+            if (statusCheckInterval) {
+                clearInterval(statusCheckInterval);
+                statusCheckInterval = null;
+            }
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        }
+
+        function clearConversation() {
+            if (confirm('Are you sure you want to clear the conversation history?')) {
+                messagesContainer.innerHTML = `
+                    <div class="message assistant">
+                        <strong>Conversation cleared!</strong> How can I help you with your research today?
+                    </div>
+                `;
+                fetch('/api/conversation/clear');
+            }
+        }
+
+        function downloadChat() {
+            const messages = Array.from(messagesContainer.children);
+            let chatText = 'Advanced Research Assistant - Chat Export\n';
+            chatText += '='.repeat(50) + '\n\n';
+            
+            messages.forEach(msg => {
+                const type = msg.className.split(' ')[1];
+                const content = msg.textContent;
+                chatText += `[${type.toUpperCase()}] ${content}\n\n`;
+            });
+            
+            const blob = new Blob([chatText], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `chat_export_${new Date().toISOString().slice(0, 10)}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('Conversational Research Assistant loaded!');
+            messageInput.focus();
+            
+            // Test server connection
+            fetch('/api/status')
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Server connected:', data);
+                })
+                .catch(error => {
+                    console.error('Connection failed:', error);
+                    addMessage('error', '🔴 <strong>Connection error:</strong> Please refresh the page.');
+                });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,113 @@
+# Environment variables (CRITICAL - Contains API keys)
+.env
+.env.local
+.env.production
+.env.staging
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environment (Don't upload venv folder)
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Operating System
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs and databases (I see you have logs folder)
+logs/
+*.log
+*.sqlite
+*.sqlite3
+*.db
+
+# Output files (Keep outputs folder structure but not the generated files)
+outputs/*.txt
+outputs/*.json
+outputs/*.pdf
+outputs/*.docx
+!outputs/.gitkeep
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+.pytest_cache/
+
+# ChromaDB files (I see chromadb files in your structure)
+chromadb-*/
+
+# Flask specific
+instance/
+.webassets-cache
+
+# Coverage reports
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+.hypothesis/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# pipenv
+Pipfile.lock
+
+# Node modules (if you add any frontend tools later)
+node_modules/
+npm-debug.log*
+
+# Backup files
+*.bak
+*.backup
+
+# Large files that shouldn't be in git
+*.zip
+*.tar.gz
+*.rar
+
+# API keys and secrets (extra protection)
+secrets.json
+config.json
+credentials.json
